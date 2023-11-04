@@ -25,18 +25,26 @@ func mainE() error {
 
 	defer client.Close()
 
-	filesStream, err := client.Container().
+	_, err = client.Container().
 		From("suhlig/b2").
 		WithEnvVariable("B2_APPLICATION_KEY_ID", os.Getenv("B2_APPLICATION_KEY_ID")).
 		WithSecretVariable("B2_APPLICATION_KEY", client.SetSecret("B2_APPLICATION_KEY", os.Getenv("B2_APPLICATION_KEY"))).
-		WithExec([]string{"b2", "ls", "suhlig-transcription-test"}).
-		Stdout(ctx)
+		WithExec([]string{"sh", "-c", "b2 ls suhlig-transcription-test > /files.txt"}).
+		File("/files.txt").Export(ctx, "b2-files.txt")
+
+	defer os.RemoveAll("b2-files.txt")
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(filesStream)
+	content, err := os.ReadFile("b2-files.txt")
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%s\n", content)
 
 	return nil
 }
